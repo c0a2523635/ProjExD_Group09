@@ -311,21 +311,37 @@ class Enemy(pygame.sprite.Sprite):
 
 def spawn_enemy(enemies, now_ms):
     """画面外のランダムな位置に敵を1体湧かせる。
-    [拡張] 難易度上昇: now_ms（経過時間）に応じて湧き数・敵HP・速度を
-           増やす処理をこの関数に足す。
+    難易度上昇: now_ms（経過時間）に応じて湧き数・敵HP・速度を増やす。
     [拡張] ウェーブ制: 「何秒にどの敵を何体」というテーブルを参照する形に
            書き換えるとウェーブ管理機能になる"""
-    side = random.randint(0, 3)
-    margin = 30
-    if side == 0:    # 上
-        pos = (random.randint(0, WIDTH), -margin)
-    elif side == 1:  # 下
-        pos = (random.randint(0, WIDTH), HEIGHT + margin)
-    elif side == 2:  # 左
-        pos = (-margin, random.randint(0, HEIGHT))
-    else:            # 右
-        pos = (WIDTH + margin, random.randint(0, HEIGHT))
-    enemies.add(Enemy(pos))
+    # 30秒(30000ミリ秒)ごとに難易度レベルが1上がる設計
+    difficulty_level = now_ms // 30000
+    
+    # 湧き数: 基本1体 + 60秒ごとに1体追加（難易度レベル2ごとに+1）
+    spawn_count = 1 + (difficulty_level // 2)
+
+    for _ in range(spawn_count):
+        side = random.randint(0, 3)
+        margin = 30
+        if side == 0:    # 上
+            pos = (random.randint(0, WIDTH), -margin)
+        elif side == 1:  # 下
+            pos = (random.randint(0, WIDTH), HEIGHT + margin)
+        elif side == 2:  # 左
+            pos = (-margin, random.randint(0, HEIGHT))
+        else:            # 右
+            pos = (WIDTH + margin, random.randint(0, HEIGHT))
+        
+        enemy = Enemy(pos)
+
+        # 経過時間によるステータス強化
+        # 速度: レベルごとに +0.15 加算
+        enemy.speed = ENEMY_SPEED + (difficulty_level * 0.15)
+        # HP: レベルごとに +1 加算（整数に固定）
+        enemy.hp = ENEMY_HP + difficulty_level
+        # ダメージ: レベルごとに +1 加算（整数に固定）
+        enemy.damage = int(ENEMY_DAMAGE + difficulty_level)
+        enemies.add(enemy)
 
 
 # =========================================================
@@ -716,8 +732,12 @@ def main():
             keys = pygame.key.get_pressed()
             player.update(keys, now)
 
+            # 難易度による湧き間隔の短縮 (30秒ごとに100ms短縮、最小200msまで)
+            difficulty_level = elapsed // 30000
+            current_spawn_interval = max(200, SPAWN_INTERVAL - (difficulty_level * 100))
+
             # 敵スポーン
-            if now - game["last_spawn"] >= SPAWN_INTERVAL:
+            if now - game["last_spawn"] >= current_spawn_interval:
                 spawn_enemy(enemies, elapsed)
                 game["last_spawn"] = now
 
