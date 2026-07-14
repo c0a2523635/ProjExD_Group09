@@ -141,13 +141,13 @@ def make_heart_surf(size, color, border=None):
     lobe_r = size * 0.55
     points = []
     for i in range(9):
-        a = math.pi * (1.0 - i / 8)
-        points.append((cx - lobe_r + lobe_r * math.cos(a),
-                       lobe_r + lobe_r * math.sin(a) - lobe_r * 0.15))
+        heart = math.pi * (1.0 - i / 8)
+        points.append((cx - lobe_r + lobe_r * math.cos(heart),
+                       lobe_r + lobe_r * math.sin(heart) - lobe_r * 0.15))
     for i in range(9):
-        a = math.pi * (1.0 - i / 8)
-        points.append((cx + lobe_r - lobe_r * math.cos(a),
-                       lobe_r + lobe_r * math.sin(a) - lobe_r * 0.15))
+        heart = math.pi * (1.0 - i / 8)
+        points.append((cx + lobe_r - lobe_r * math.cos(heart),
+                       lobe_r + lobe_r * math.sin(heart) - lobe_r * 0.15))
     points.append((cx, h))
     pygame.draw.polygon(surf, color, points)
     if border:
@@ -731,7 +731,6 @@ def main():
             draw_hud(screen, font, game["player"], final_time, game["kills"])
             draw_gameover(screen, font_big, font, final_time, game["kills"])
            
-
         pygame.display.flip()
         clock.tick(FPS)
 
