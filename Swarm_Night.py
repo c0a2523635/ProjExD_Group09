@@ -53,7 +53,7 @@ COL_BG     = (24, 28, 24)
 COL_TEXT   = (240, 240, 240)
 COL_HP_BG  = (70, 30, 30)
 COL_HP_FG  = (60, 200, 90)
-
+COL_STAMINA_FG = (240, 140, 20)  # [追加] スタミナバーのオレンジ色
 
 # =========================================================
 # ユーティリティ
@@ -205,6 +205,9 @@ class Player(pygame.sprite.Sprite):
         self.invincible_until = 0  # この時刻まで無敵
         self.facing = (1.0, 0.0)   # 最後に移動した方向（槍・斧が参照）追加機能実装(杉本)
         self.exp = 0  # 経験値ジェム取得の受け皿
+        self.max_stamina: float = 100.0 #最大スタミナ値
+        self.stamina: float = 100.0     #現在のスタミナ値
+
 
     def update(self, keys, now):
         #8方向移動
@@ -217,10 +220,24 @@ class Player(pygame.sprite.Sprite):
             dy *= 0.7071
         if dx or dy:
             self.facing = (dx, dy)  # 移動中だけ向きを更新　追加機能実装(杉本)
+            
+     # [拡張] ダッシュ機能: Shift押下中は speed を一時的に倍にする等    
+        is_moving = (dx != 0 or dy != 0)
+        is_dash_pressed = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+        
+        # 基準となる通常速度（4.5）を設定
+        base_speed = 4.5
+
+        if is_dash_pressed and is_moving and self.stamina > 0:
+            self.speed = base_speed * 1.6
+            self.stamina = max(0.0, self.stamina - 0.8)  # スタミナ消費
+        else:
+            self.speed = base_speed
+            self.stamina = min(self.max_stamina, self.stamina + 0.05)  # スタミナ回復
+            
         self.rect.x += dx * self.speed
         self.rect.y += dy * self.speed
         self.rect.clamp_ip(pygame.Rect(0, 0, WIDTH, HEIGHT))
-        # [拡張] ダッシュ機能: Shift押下中は speed を一時的に倍にする等
 
     def take_damage(self, amount, now):
         """被弾処理。無敵時間中はダメージを受けない。"""
@@ -570,7 +587,20 @@ def draw_hud(screen, font, player, elapsed_ms, kills):
     hp_text = font.render(f"HP {max(0, player.hp)}/{player.max_hp}",
                           True, COL_TEXT)
     screen.blit(hp_text, (270, 18))
-
+    
+    #スタミナバー
+    stamina_bar_w, stamina_bar_h = 240, 6
+    pygame.draw.rect(screen, (50, 40, 30), (20, 43, stamina_bar_w, stamina_bar_h), border_radius=2)
+    stamina_ratio = max(0.0, player.stamina / player.max_stamina)
+    pygame.draw.rect(screen, COL_STAMINA_FG, (20, 43, int(stamina_bar_w * stamina_ratio), stamina_bar_h), border_radius=2)
+    
+    if jp_available():
+        stamina_label = "スタミナ"
+    else:
+        stamina_label = "STAMINA"
+    stamina_text = font.render(f"{stamina_label} {int(player.stamina)}%", True, (200, 180, 150))
+    screen.blit(stamina_text, (270, 38))
+    
     # 経過時間 (MM:SS)
     sec = elapsed_ms // 1000
     time_text = font.render(f"TIME {sec // 60:02d}:{sec % 60:02d}",
